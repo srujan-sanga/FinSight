@@ -1,2 +1,8 @@
 <Solution>
+  <Project Path="../../shared/FinSight.Contracts/FinSight.Contracts.csproj" />
+  <Project Path="IdentityService.Api/IdentityService.Api.csproj" />
+  <Project Path="IdentityService.Business/IdentityService.Business.csproj" />
+  <Project Path="IdentityService.External.Contracts/IdentityService.External.Contracts.csproj" />
+  <Project Path="IdentityService.Internal.Contracts/IdentityService.Internal.Contracts.csproj" />
+  <Project Path="IdentityService.Tests/IdentityService.Tests.csproj" />
 </Solution>

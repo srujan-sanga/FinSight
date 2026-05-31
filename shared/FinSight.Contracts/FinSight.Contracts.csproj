@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.Core.Api" Version="2.60.0" />
-    <PackageReference Include="System.ComponentModel.DataAnnotations" Version="4.7.0" />
   </ItemGroup>
 
 </Project>
