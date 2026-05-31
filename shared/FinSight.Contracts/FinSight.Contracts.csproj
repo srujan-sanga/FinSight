@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>FinSight.Contracts</AssemblyName>
+    <RootNamespace>FinSight.Contracts</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.Core.Api" Version="2.60.0" />
+    <PackageReference Include="System.ComponentModel.DataAnnotations" Version="4.7.0" />
+  </ItemGroup>
+
+</Project>

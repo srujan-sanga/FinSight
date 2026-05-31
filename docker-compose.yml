@@ -1,0 +1,181 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - Identity Database
+  postgres-identity:
+    image: postgres:16-alpine
+    container_name: finsight-postgres-identity
+    environment:
+      POSTGRES_DB: identitydb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-identity-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finsight-network
+
+  # PostgreSQL - Transaction Database (shared postgres instance with different DB)
+  postgres-transaction:
+    image: postgres:16-alpine
+    container_name: finsight-postgres-transaction
+    environment:
+      POSTGRES_DB: transactiondb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-transaction-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finsight-network
+
+  # PostgreSQL - Portfolio Database
+  postgres-portfolio:
+    image: postgres:16-alpine
+    container_name: finsight-postgres-portfolio
+    environment:
+      POSTGRES_DB: portfoliodb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-portfolio-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finsight-network
+
+  # PostgreSQL - Document Database
+  postgres-document:
+    image: postgres:16-alpine
+    container_name: finsight-postgres-document
+    environment:
+      POSTGRES_DB: documentdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-document-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finsight-network
+
+  # PostgreSQL - AI Database
+  postgres-ai:
+    image: postgres:16-alpine
+    container_name: finsight-postgres-ai
+    environment:
+      POSTGRES_DB: aidb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres-ai-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finsight-network
+
+  # Keycloak - Identity Provider
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.0
+    container_name: finsight-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-identity:5432/identitydb
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KC_FEATURES: token_exchange,admin_fine_grained_authz,preview
+      KC_HEALTH_ENABLED: 'true'
+      KC_METRICS_ENABLED: 'true'
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres-identity:
+        condition: service_healthy
+    command:
+      - start-dev
+    networks:
+      - finsight-network
+
+  # Redis Cache (Phase 2)
+  redis:
+    image: redis:7-alpine
+    container_name: finsight-redis
+    command: redis-server --appendonly yes --requirepass redis123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finsight-network
+    profiles:
+      - phase2
+
+  # RabbitMQ Message Queue (Phase 2)
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: finsight-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"      # AMQP
+      - "15672:15672"    # Management UI
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finsight-network
+    profiles:
+      - phase2
+
+volumes:
+  postgres-identity-data:
+  postgres-transaction-data:
+  postgres-portfolio-data:
+  postgres-document-data:
+  postgres-ai-data:
+  redis-data:
+  rabbitmq-data:
+
+networks:
+  finsight-network:
+    driver: bridge

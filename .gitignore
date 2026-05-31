@@ -1,0 +1,85 @@
+# FinSight AI - Enterprise Financial Intelligence Platform
+
+## Project Files
+
+### Binaries
+bin/
+obj/
+*.exe
+*.dll
+*.so
+*.dylib
+
+### Build
+dist/
+build/
+*.o
+*.a
+
+### Dependencies
+node_modules/
+packages/
+.nuget/
+
+### IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.vs/
+*.user
+*.suo
+
+### Runtime
+.env
+.env.local
+appsettings.Development.json
+launchSettings.json
+
+### Logs
+logs/
+*.log
+*.log.*
+
+### Database
+*.db
+*.sqlite
+*.sqlite3
+pgdata/
+*.pem
+
+### Docker
+docker-compose.override.yml
+
+### Testing
+coverage/
+*.trx
+TestResults/
+**/test-results.xml
+
+### Frontend
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
+
+### Temporary
+tmp/
+temp/
+*.tmp
+
+### OS
+Thumbs.db
+.Directory
+.AppleDouble
+.LSOverride
+
+### Git
+.git/
+.gitattributes
+
+### CI/CD
+.github/workflows/*.log

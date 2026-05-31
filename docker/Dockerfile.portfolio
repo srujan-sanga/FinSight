@@ -1,0 +1,28 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /build
+
+# Copy solution and project files
+COPY ["shared/", "shared/"]
+COPY ["services/", "services/"]
+
+# Restore and build
+RUN dotnet restore "services/portfolio-service/PortfolioService.Api/PortfolioService.Api.csproj"
+RUN dotnet build "services/portfolio-service/PortfolioService.Api/PortfolioService.Api.csproj" -c Release -o /app/build
+
+# Publish stage
+FROM build AS publish
+RUN dotnet publish "services/portfolio-service/PortfolioService.Api/PortfolioService.Api.csproj" -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:5003
+EXPOSE 5003
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD dotnet /app/HealthCheck.dll || exit 1
+
+ENTRYPOINT ["dotnet", "PortfolioService.Api.dll"]
