@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ProtoBuf;
 
 namespace FinSight.Contracts
 {
@@ -8,21 +9,25 @@ namespace FinSight.Contracts
     /// Base class for all incoming requests.
     /// Includes correlation ID, timestamp, and request tracking.
     /// </summary>
+    [ProtoContract]
     public abstract class MessageRequest
     {
         /// <summary>
         /// Unique identifier for correlating requests across services.
         /// </summary>
+        [ProtoMember(1)]
         public string CorrelationId { get; set; } = Guid.NewGuid().ToString();
 
         /// <summary>
         /// Unix timestamp in milliseconds when request was created.
         /// </summary>
+        [ProtoMember(2)]
         public long Timestamp { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         /// <summary>
         /// Unique request identifier for audit and logging.
         /// </summary>
+        [ProtoMember(3)]
         public string RequestId { get; set; } = Guid.NewGuid().ToString();
     }
 
@@ -30,27 +35,32 @@ namespace FinSight.Contracts
     /// Base class for all responses.
     /// Includes status, message, and correlation tracking.
     /// </summary>
+    [ProtoContract]
     public abstract class MessageResponse
     {
         /// <summary>
         /// Correlation ID matching the request.
         /// </summary>
-        public string CorrelationId { get; set; }
+        [ProtoMember(1)]
+        public string CorrelationId { get; set; } = string.Empty;
 
         /// <summary>
         /// Unix timestamp in milliseconds when response was created.
         /// </summary>
+        [ProtoMember(2)]
         public long Timestamp { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         /// <summary>
         /// Indicates whether the operation succeeded.
         /// </summary>
+        [ProtoMember(3)]
         public bool Success { get; set; } = true;
 
         /// <summary>
         /// Human-readable message (especially for errors).
         /// </summary>
-        public string Message { get; set; }
+        [ProtoMember(4)]
+        public string Message { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -66,7 +76,7 @@ namespace FinSight.Contracts
         /// <summary>
         /// Stack trace (only in development).
         /// </summary>
-        public string StackTrace { get; set; }
+        public string StackTrace { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -128,7 +138,7 @@ namespace FinSight.Contracts
         /// <summary>
         /// Field to sort by.
         /// </summary>
-        public string SortBy { get; set; }
+        public string SortBy { get; set; } = string.Empty;
 
         /// <summary>
         /// Sort in descending order.
@@ -155,12 +165,12 @@ namespace FinSight.Contracts
         /// <summary>
         /// Unique user identifier.
         /// </summary>
-        public string UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         /// <summary>
         /// User's email address.
         /// </summary>
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// User's assigned roles.

@@ -6,65 +6,40 @@ Every microservice follows this layered architecture:
 
 ```
 MyService.sln
-├── MyService.Contracts/
-│   ├── Requests/
-│   │   ├── CreateMyEntityRequest.cs
-│   │   ├── UpdateMyEntityRequest.cs
-│   │   └── GetMyEntityRequest.cs
-│   ├── Responses/
-│   │   ├── CreateMyEntityResponse.cs
-│   │   ├── GetMyEntityResponse.cs
-│   │   └── ListMyEntityResponse.cs
-│   └── MyService.Contracts.csproj
+├── MyService.External.Contracts/
+│   ├── ServiceContracts/
+│   │   └── IMyEntityManager.cs
+│   └── MyService.External.Contracts.csproj
+│
+├── MyService.Internal.Contracts/
+│   ├── ServiceContracts/
+│   │   └── IMyEntityEngine.cs
+│   ├── DataContracts/
+│   │   ├── Req/
+│   │   │   ├── CreateMyEntityRequest.cs
+│   │   │   └── GetMyEntityRequest.cs
+│   │   ├── Responses/
+│   │   │   ├── CreateMyEntityResponse.cs
+│   │   │   └── GetMyEntityResponse.cs
+│   │   └── MyEntityDto.cs
+│   └── MyService.Internal.Contracts.csproj
 │
 ├── MyService.Business/
-│   ├── Engines/
-│   │   ├── ICreateMyEntityEngine.cs
-│   │   ├── CreateMyEntityEngine.cs
-│   │   └── ...
 │   ├── Managers/
-│   │   ├── ICreateMyEntityManager.cs
-│   │   ├── CreateMyEntityManager.cs
-│   │   └── ...
-│   ├── Validators/
-│   │   ├── ICreateMyEntityValidator.cs
-│   │   └── CreateMyEntityValidator.cs
-│   ├── Domain/
-│   │   ├── MyEntity.cs
-│   │   └── ValueObjects/
+│   │   └── MyEntityManager.cs
+│   ├── Engines/
+│   │   └── MyEntityEngine.cs
+│   ├── DatabaseRA/
+│   │   └── MyEntityRa.cs
 │   └── MyService.Business.csproj
 │
-├── MyService.Data/
-│   ├── Migrations/
-│   │   ├── 001_InitialCreate.cs
-│   │   └── 002_AddIndexes.cs
-│   ├── Context/
-│   │   └── MyServiceDbContext.cs
-│   ├── Repositories/
-│   │   ├── IMyEntityRepository.cs
-│   │   └── MyEntityRepository.cs
-│   ├── Configurations/
-│   │   └── MyEntityConfiguration.cs
-│   └── MyService.Data.csproj
-│
 ├── MyService.Api/
-│   ├── grpc/
-│   │   ├── Protos/
-│   │   │   └── myservice.proto
-│   │   └── Services/
-│   │       └── MyServiceImpl.cs
-│   ├── Controllers/
-│   │   └── HealthController.cs
+│   ├── Program.cs
 │   ├── Interceptors/
 │   │   ├── ExceptionHandlingInterceptor.cs
 │   │   ├── CorrelationIdInterceptor.cs
 │   │   ├── AuthenticationInterceptor.cs
 │   │   └── LoggingInterceptor.cs
-│   ├── Middleware/
-│   │   └── ErrorHandlingMiddleware.cs
-│   ├── Startup/
-│   │   ├── Program.cs
-│   │   └── StartupConfiguration.cs
 │   ├── appsettings.json
 │   ├── appsettings.Development.json
 │   └── MyService.Api.csproj
@@ -78,21 +53,34 @@ MyService.sln
     │   └── Validators/
     │       └── CreateMyEntityValidatorTests.cs
     ├── Integration/
-    │   ├── Repositories/
-    │   │   └── MyEntityRepositoryTests.cs
-    │   └── Services/
-    │       └── MyServiceImplTests.cs
+    │   ├── DatabaseRA/
+    │   │   └── MyEntityRaTests.cs
+    │   └── Contracts/
+    │       └── MyEntityManagerContractTests.cs
     ├── Fixtures/
     │   ├── DatabaseFixture.cs
-    │   └── RepositoryFixture.cs
+    │   └── RaFixture.cs
     └── MyService.Tests.csproj
 ```
 
 ## Layer Responsibilities
 
-### Contracts Layer (`MyService.Contracts`)
+### External Contracts Layer (`MyService.External.Contracts`)
 
-**Purpose**: Define external API contracts
+**Purpose**: Define API-facing manager contracts. External applications reference this project, not Business.
+
+```csharp
+public interface ICreateTransactionManager : IExternalManager
+{
+    Task<CreateTransactionResponse> ExecuteAsync(
+        CreateTransactionRequest request,
+        CancellationToken cancellationToken = default);
+}
+```
+
+### Internal Contracts Layer (`MyService.Internal.Contracts`)
+
+**Purpose**: Define engine contracts and request/response data contracts.
 
 ```csharp
 // Requests inherit from MessageRequest
@@ -125,42 +113,27 @@ public class CreateTransactionResponse : MessageResponse
 
 ### Business Layer (`MyService.Business`)
 
+Business references both External.Contracts and Internal.Contracts. API does not reference Business.
+
 **Engines** - Pure business logic:
 
 ```csharp
-public interface ICreateTransactionEngine
+public interface ICreateTransactionEngine : IEngine
 {
-    Task<Transaction> CreateAsync(
+    Task<CreateTransactionResponse> CreateAsync(
         CreateTransactionRequest request,
-        UserContext userContext);
+        CancellationToken cancellationToken = default);
 }
 
-public class CreateTransactionEngine : ICreateTransactionEngine
+public class CreateTransactionEngine : EngineBase, ICreateTransactionEngine
 {
-    private readonly ITransactionRepository _repository;
-    private readonly ILogger<CreateTransactionEngine> _logger;
+    private readonly ITransactionRa _ra;
     
-    public async Task<Transaction> CreateAsync(
+    public async Task<CreateTransactionResponse> CreateAsync(
         CreateTransactionRequest request,
-        UserContext userContext)
+        CancellationToken cancellationToken = default)
     {
-        // Business logic only - no validation, auth, or orchestration
-        var transaction = new Transaction
-        {
-            UserId = userContext.UserId,
-            Description = request.Description,
-            Amount = request.Amount,
-            Category = request.Category,
-            TransactionDate = request.TransactionDate,
-            CreatedAt = DateTime.UtcNow
-        };
-        
-        await _repository.AddAsync(transaction);
-        _logger.LogInformation(
-            "Transaction created: {TransactionId} for user {UserId}",
-            transaction.Id, userContext.UserId);
-            
-        return transaction;
+        return await _ra.CreateAsync(request, cancellationToken);
     }
 }
 ```
@@ -168,102 +141,34 @@ public class CreateTransactionEngine : ICreateTransactionEngine
 **Managers** - Orchestration & validation:
 
 ```csharp
-public interface ICreateTransactionManager
-{
-    Task<CreateTransactionResponse> ExecuteAsync(
-        CreateTransactionRequest request,
-        UserContext userContext);
-}
-
-public class CreateTransactionManager : ICreateTransactionManager
+public class CreateTransactionManager : ManagerBase, ICreateTransactionManager
 {
     private readonly ICreateTransactionEngine _engine;
-    private readonly ICreateTransactionValidator _validator;
-    private readonly ILogger<CreateTransactionManager> _logger;
     
     public async Task<CreateTransactionResponse> ExecuteAsync(
         CreateTransactionRequest request,
-        UserContext userContext)
+        CancellationToken cancellationToken = default)
     {
-        try
-        {
-            // 1. Validate
-            var validationErrors = _validator.Validate(request);
-            if (validationErrors.Any())
-                throw new ValidationException(validationErrors);
-            
-            // 2. Authorize
-            if (!userContext.HasPermission("transaction:create"))
-                throw new UnauthorizedException("Insufficient permissions");
-            
-            // 3. Execute business logic
-            var transaction = await _engine.CreateAsync(request, userContext);
-            
-            // 4. Return response
-            return new CreateTransactionResponse
-            {
-                Success = true,
-                TransactionId = transaction.Id,
-                Status = TransactionStatus.Pending,
-                CorrelationId = request.CorrelationId
-            };
-        }
-        catch (ValidationException ex)
-        {
-            _logger.LogWarning("Validation failed: {Errors}", ex.Errors);
-            return new CreateTransactionResponse
-            {
-                Success = false,
-                Message = "Validation failed",
-                CorrelationId = request.CorrelationId
-            };
-        }
-        catch (UnauthorizedException ex)
-        {
-            _logger.LogWarning("Authorization failed: {Message}", ex.Message);
-            throw;
-        }
+        if (string.IsNullOrWhiteSpace(request.Description))
+            return Failure<CreateTransactionResponse>(request, "Description is required.");
+
+        return await _engine.CreateAsync(request, cancellationToken);
     }
 }
 ```
 
-### Data Layer (`MyService.Data`)
+### DatabaseRA Layer (`MyService.Business/DatabaseRA`)
 
-**Entity Configuration**:
-
-```csharp
-public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
-{
-    public void Configure(EntityTypeBuilder<Transaction> builder)
-    {
-        builder.HasKey(t => t.Id);
-        
-        builder.Property(t => t.Description)
-            .IsRequired()
-            .HasMaxLength(500);
-        
-        builder.Property(t => t.Amount)
-            .HasPrecision(18, 2);
-        
-        builder.HasIndex(t => new { t.UserId, t.TransactionDate });
-        builder.HasIndex(t => t.Category);
-    }
-}
-```
-
-**Repository Pattern**:
+**Purpose**: Keep data access behind the engine inside Business. API never references DatabaseRA.
 
 ```csharp
-public interface ITransactionRepository
+public interface ITransactionRa : IDatabaseRA
 {
     Task<Transaction> GetByIdAsync(string id);
-    Task<IEnumerable<Transaction>> GetByUserIdAsync(string userId);
     Task AddAsync(Transaction entity);
-    Task UpdateAsync(Transaction entity);
-    Task DeleteAsync(string id);
 }
 
-public class TransactionRepository : ITransactionRepository
+public class TransactionRa : RaBase, ITransactionRa
 {
     private readonly MyServiceDbContext _context;
     
@@ -284,81 +189,42 @@ public class TransactionRepository : ITransactionRepository
 
 ### API Layer (`MyService.Api`)
 
-**gRPC Service Implementation**:
-
-```csharp
-public class TransactionServiceImpl : TransactionService.TransactionServiceBase
-{
-    private readonly ICreateTransactionManager _createManager;
-    private readonly ILogger<TransactionServiceImpl> _logger;
-    
-    public override async Task<CreateTransactionResponse> CreateTransaction(
-        CreateTransactionRequest request,
-        ServerCallContext context)
-    {
-        var userContext = context.GetUserContext();
-        var response = await _createManager.ExecuteAsync(request, userContext);
-        
-        return response;
-    }
-}
-```
+The API project references `MyService.External.Contracts` only. gRPC hosting is generated from external manager contracts once, so developers add methods to `IAbcManager` and implement them in `AbcManager`.
 
 **Program.cs Configuration**:
 
 ```csharp
-public static class StartupConfiguration
+using MyService.Api.Grpc;
+using MyService.External.Contracts.ServiceContracts;
+using ProtoBuf.Grpc.Server;
+
+var builder = WebApplication.CreateBuilder(args);
+var businessAssembly = BusinessAssemblyLoader.Load("MyService.Business");
+var grpcManagerServices = builder.Services.AddExternalManagerGrpcServices(
+    typeof(ICreateTransactionManager).Assembly,
+    businessAssembly);
+
+builder.Services.AddCodeFirstGrpc();
+builder.Services.AddHealthChecks();
+
+var app = builder.Build();
+
+app.MapExternalManagerGrpcServices(grpcManagerServices);
+app.MapHealthChecks("/health");
+
+app.Run();
+```
+
+External manager contracts are code-first gRPC contracts:
+
+```csharp
+[ServiceContract(Name = "TransactionManager")]
+public interface ICreateTransactionManager : IExternalManager
 {
-    public static WebApplicationBuilder ConfigureServices(
-        this WebApplicationBuilder builder)
-    {
-        // Database
-        builder.Services.AddDbContext<MyServiceDbContext>(options =>
-            options.UseNpgsql(
-                builder.Configuration.GetConnectionString("DefaultConnection")));
-        
-        // Repositories
-        builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
-        
-        // Business Logic
-        builder.Services.AddScoped<ICreateTransactionEngine, CreateTransactionEngine>();
-        builder.Services.AddScoped<ICreateTransactionManager, CreateTransactionManager>();
-        
-        // gRPC
-        builder.Services.AddGrpc(options =>
-        {
-            options.Interceptors.Add<CorrelationIdInterceptor>();
-            options.Interceptors.Add<ExceptionHandlingInterceptor>();
-            options.Interceptors.Add<AuthenticationInterceptor>();
-        });
-        
-        // Authentication
-        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.Authority = builder.Configuration["Keycloak:Authority"];
-                options.Audience = builder.Configuration["Keycloak:Audience"];
-            });
-        
-        return builder;
-    }
-    
-    public static WebApplication ConfigurePipeline(
-        this WebApplication app)
-    {
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseDeveloperExceptionPage();
-        }
-        
-        app.UseRouting();
-        app.UseAuthentication();
-        app.UseAuthorization();
-        
-        app.MapGrpcService<TransactionServiceImpl>();
-        
-        return app;
-    }
+    [OperationContract]
+    Task<CreateTransactionResponse> ExecuteAsync(
+        CreateTransactionRequest request,
+        CallContext context = default);
 }
 ```
 
@@ -369,13 +235,13 @@ public static class StartupConfiguration
 ```csharp
 public class CreateTransactionEngineTests
 {
-    private readonly Mock<ITransactionRepository> _repositoryMock;
+    private readonly Mock<ITransactionRa> _raMock;
     private readonly CreateTransactionEngine _engine;
     
     public CreateTransactionEngineTests()
     {
-        _repositoryMock = new Mock<ITransactionRepository>();
-        _engine = new CreateTransactionEngine(_repositoryMock.Object, LoggerFactory.CreateLogger());
+        _raMock = new Mock<ITransactionRa>();
+        _engine = new CreateTransactionEngine(_raMock.Object);
     }
     
     [Fact]
@@ -390,24 +256,20 @@ public class CreateTransactionEngineTests
             TransactionDate = DateTime.UtcNow
         };
         
-        var userContext = new UserContext { UserId = "user123" };
-        
         // Act
-        var result = await _engine.CreateAsync(request, userContext);
+        var result = await _engine.CreateAsync(request);
         
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("Grocery", result.Description);
-        Assert.Equal(50.00m, result.Amount);
-        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Transaction>()), Times.Once);
+        _raMock.Verify(r => r.CreateAsync(request, It.IsAny<CancellationToken>()), Times.Once);
     }
 }
 ```
 
-### Integration Tests (Repositories)
+### Integration Tests (DatabaseRA)
 
 ```csharp
-public class TransactionRepositoryTests : IAsyncLifetime
+public class TransactionRaTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container;
     private MyServiceDbContext _context;
@@ -429,7 +291,7 @@ public class TransactionRepositoryTests : IAsyncLifetime
     public async Task AddAsync_WithValidTransaction_ShouldPersist()
     {
         // Arrange
-        var repository = new TransactionRepository(_context);
+        var ra = new TransactionRa(_context);
         var transaction = new Transaction
         {
             UserId = "user123",
@@ -438,8 +300,8 @@ public class TransactionRepositoryTests : IAsyncLifetime
         };
         
         // Act
-        await repository.AddAsync(transaction);
-        var result = await repository.GetByIdAsync(transaction.Id);
+        await ra.AddAsync(transaction);
+        var result = await ra.GetByIdAsync(transaction.Id);
         
         // Assert
         Assert.NotNull(result);
@@ -450,12 +312,11 @@ public class TransactionRepositoryTests : IAsyncLifetime
 
 ## Dependency Injection
 
-Register services in `Program.cs`:
+Register Business services in the Business composition module, not directly in API:
 
 ```csharp
 builder.Services
-    .AddScoped<ITransactionRepository, TransactionRepository>()
-    .AddScoped<ITransactionValidator, TransactionValidator>()
+    .AddScoped<ITransactionRa, TransactionRa>()
     .AddScoped<ICreateTransactionEngine, CreateTransactionEngine>()
     .AddScoped<ICreateTransactionManager, CreateTransactionManager>();
 ```

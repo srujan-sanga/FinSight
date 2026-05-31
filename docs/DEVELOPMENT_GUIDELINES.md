@@ -10,7 +10,7 @@ Follow Microsoft C# Coding Conventions with these additional guidelines:
    - Use PascalCase for class names: `TransactionService`
    - Use camelCase for local variables: `userContext`
    - Use UPPERCASE for constants: `MAX_TRANSACTION_AMOUNT`
-   - Use I prefix for interfaces: `ITransactionRepository`
+   - Use I prefix for interfaces: `ITransactionManager`, `ITransactionEngine`
 
 2. **Async/Await**
    - Always use `async`/`await` for I/O operations
@@ -115,15 +115,14 @@ public async Task CreateTransaction_WithValidRequest_ReturnsSuccess()
 {
     // Arrange
     var request = new CreateTransactionRequest { /* ... */ };
-    var engine = new CreateTransactionEngine(mockRepository);
+    var engine = new CreateTransactionEngine(mockRa);
     
     // Act
-    var result = await engine.CreateAsync(request, userContext);
+    var result = await engine.CreateAsync(request);
     
     // Assert
     Assert.NotNull(result);
-    Assert.Equal("desc", result.Description);
-    mockRepository.Verify(r => r.AddAsync(It.IsAny<Transaction>()), Times.Once);
+    mockRa.Verify(r => r.CreateAsync(request, It.IsAny<CancellationToken>()), Times.Once);
 }
 ```
 

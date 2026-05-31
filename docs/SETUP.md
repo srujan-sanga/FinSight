@@ -213,25 +213,32 @@ dotnet new globaljson --sdk-version 10.0.0
 dotnet new sln -n MyNewService
 
 # Create class libraries
-dotnet new classlib -n MyNewService.Contracts
+dotnet new classlib -n MyNewService.External.Contracts
+dotnet new classlib -n MyNewService.Internal.Contracts
 dotnet new classlib -n MyNewService.Business
-dotnet new classlib -n MyNewService.Data
 dotnet new web -n MyNewService.Api
 dotnet new xunit -n MyNewService.Tests
 
 # Add to solution
-dotnet sln add MyNewService.Contracts/MyNewService.Contracts.csproj
+dotnet sln add MyNewService.External.Contracts/MyNewService.External.Contracts.csproj
+dotnet sln add MyNewService.Internal.Contracts/MyNewService.Internal.Contracts.csproj
 dotnet sln add MyNewService.Business/MyNewService.Business.csproj
-dotnet sln add MyNewService.Data/MyNewService.Data.csproj
 dotnet sln add MyNewService.Api/MyNewService.Api.csproj
 dotnet sln add MyNewService.Tests/MyNewService.Tests.csproj
 
-# Add shared references
-dotnet add MyNewService.Contracts reference ../shared/FinSight.Contracts
-dotnet add MyNewService.Business reference MyNewService.Contracts ../shared/FinSight.Common
-dotnet add MyNewService.Data reference MyNewService.Business ../shared/FinSight.Common
-dotnet add MyNewService.Api reference MyNewService.Business MyNewService.Data ../shared/FinSight.Common
-dotnet add MyNewService.Tests reference MyNewService.Api ../shared/FinSight.Testing
+# Add references
+dotnet add MyNewService.Internal.Contracts reference ../shared/FinSight.Contracts
+dotnet add MyNewService.External.Contracts reference MyNewService.Internal.Contracts ../shared/FinSight.Contracts
+dotnet add MyNewService.Business reference MyNewService.External.Contracts MyNewService.Internal.Contracts
+dotnet add MyNewService.Api reference MyNewService.External.Contracts
+dotnet add MyNewService.Tests reference MyNewService.Business MyNewService.Api
+
+# Add gRPC/code-first contract packages
+dotnet add ../shared/FinSight.Contracts package protobuf-net
+dotnet add MyNewService.Internal.Contracts package protobuf-net
+dotnet add MyNewService.External.Contracts package protobuf-net.Grpc
+dotnet add MyNewService.External.Contracts package System.ServiceModel.Primitives --version 4.5.3
+dotnet add MyNewService.Api package protobuf-net.Grpc.AspNetCore
 ```
 
 ### Testing

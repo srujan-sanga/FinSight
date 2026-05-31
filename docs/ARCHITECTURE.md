@@ -94,9 +94,9 @@ Phase 2 (Optional):
 HTTP/gRPC Request
     ↓
 ┌─────────────────────────────────────────┐
-│  Controller / gRPC Handler              │
-│  - Route request                        │
-│  - Call Manager                         │
+│  gRPC Contract Host                     │
+│  - Expose external manager contracts    │
+│  - No Business project reference        │
 └────────────────┬────────────────────────┘
                  │
                  ▼
@@ -120,7 +120,7 @@ HTTP/gRPC Request
                  │
                  ▼
 ┌─────────────────────────────────────────┐
-│  Repository (Data Access)               │
+│  DatabaseRA (Data Access)               │
 │  - Database queries                     │
 │  - Entity persistence                   │
 │  - Data aggregation                     │
@@ -281,7 +281,7 @@ public class ExceptionHandlingInterceptor : Interceptor
 public class TransactionEngine : ITransactionEngine
 {
     private readonly PortfolioService.PortfolioServiceClient _portfolioClient;
-    private readonly ITransactionRepository _repository;
+    private readonly ITransactionRa _ra;
     
     public async Task<Transaction> CreateAsync(
         CreateTransactionRequest request, 
@@ -304,7 +304,7 @@ public class TransactionEngine : ITransactionEngine
             TransactionDate = request.TransactionDate
         };
         
-        await _repository.AddAsync(transaction);
+        await _ra.AddAsync(transaction);
         return transaction;
     }
 }

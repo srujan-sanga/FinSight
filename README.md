@@ -109,20 +109,20 @@ FinSight/
 Each microservice follows the **Manager/Engine Pattern**:
 
 ```
-Controller/gRPC Handler
+gRPC Contract Host
     ↓
 Manager (Validation, Security, Orchestration)
     ↓
 Engine (Business Rules, Domain Logic)
     ↓
-Repository (Data Access)
+DatabaseRA (Data Access)
 ```
 
 Every microservice includes:
-- **[Service].Contracts** - External DTOs (inherit from MessageRequest/MessageResponse)
-- **[Service].Business** - Business logic engines
-- **[Service].Data** - Data access and repositories
-- **[Service].Api** - gRPC handlers and managers
+- **[Service].External.Contracts** - API-facing manager interfaces only
+- **[Service].Internal.Contracts** - engine interfaces plus request/response data contracts
+- **[Service].Business** - manager, engine, and DatabaseRA implementations
+- **[Service].Api** - gRPC hosting surface that references external contracts only
 - **[Service].Tests** - Unit and integration tests
 
 ## Communication Patterns

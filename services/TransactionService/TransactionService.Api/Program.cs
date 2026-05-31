@@ -1,12 +1,12 @@
-using IdentityService.Api.Grpc;
-using IdentityService.External.Contracts.ServiceContracts;
+using TransactionService.Api.Grpc;
+using TransactionService.Contracts.ServiceContracts;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using ProtoBuf.Grpc.Server;
 
 var builder = WebApplication.CreateBuilder(args);
-var businessAssembly = BusinessAssemblyLoader.Load("IdentityService.Business");
+var businessAssembly = BusinessAssemblyLoader.Load("TransactionService.Business");
 var grpcManagerServices = builder.Services.AddExternalManagerGrpcServices(
-    typeof(IIdentityManager).Assembly,
+    typeof(ITransactionManager).Assembly,
     businessAssembly);
 
 builder.Services.AddCodeFirstGrpc();
