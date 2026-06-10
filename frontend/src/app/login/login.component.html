@@ -1,0 +1,82 @@
+<div class="auth-viewport">
+  
+  <!-- Left Side: Branding / Marketing Canvas -->
+  <div class="auth-branding-sidebar">
+    <div class="brand-header">
+      <span class="brand-logo">⚡</span>
+      <span class="brand-name">FinSight</span>
+    </div>
+    <div class="branding-content">
+      <h1>Advanced Multi-Tenant Analytics Core</h1>
+      <p>Securely orchestrating distributed microservices and dynamic database tenants in real time.</p>
+    </div>
+    <div class="brand-footer">
+      <p>&copy; 2026 FinSight Enterprise Solutions. All rights reserved.</p>
+    </div>
+  </div>
+
+  <!-- Right Side: Clean Login Form Shell -->
+  <div class="auth-form-container">
+    <div class="auth-form-card">
+      <div class="form-header">
+        <h2>System Authentication</h2>
+        <p>Enter your assigned credentials and environmental tenant routing allocation key.</p>
+      </div>
+
+      <form (ngSubmit)="onSubmit()" autocomplete="off">
+        
+        <!-- Input Group 1: Tenant Key -->
+        <div class="form-group">
+          <label for="tenant">Environmental Tenant System ID</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🌐</span>
+            <input 
+              type="text" 
+              id="tenant" 
+              name="internalSystemId" 
+              [(ngModel)]="internalSystemId" 
+              placeholder="e.g., tenant_alpha" 
+              required />
+          </div>
+        </div>
+
+        <!-- Input Group 2: Username -->
+        <div class="form-group">
+          <label for="username">Username</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input 
+              type="text" 
+              id="username" 
+              name="username" 
+              [(ngModel)]="username" 
+              placeholder="Enter your username" 
+              required />
+          </div>
+        </div>
+
+        <!-- Input Group 3: Password -->
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              [(ngModel)]="password" 
+              placeholder="••••••••" 
+              required />
+          </div>
+        </div>
+
+        <!-- Action Submit Execution Trigger -->
+        <button type="submit" class="btn-submit">
+          <span>Authenticate Session</span>
+          <span class="arrow">→</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>

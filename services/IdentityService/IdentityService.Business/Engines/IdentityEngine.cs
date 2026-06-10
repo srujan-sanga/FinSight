@@ -1,9 +1,9 @@
 using FinSight.Contracts;
 using IdentityService.Business.DatabaseRA;
-using IdentityService.Internal.Contracts.DataContracts.Req;
+using IdentityService.Internal.Contracts.DataContracts.Entities;
 using IdentityService.Internal.Contracts.DataContracts.Responses;
 using IdentityService.Internal.Contracts.ServiceContracts;
-
+using BCrypt.Net;
 namespace IdentityService.Business.Engines;
 
 public sealed class IdentityEngine : EngineBase, IIdentityEngine
@@ -15,27 +15,15 @@ public sealed class IdentityEngine : EngineBase, IIdentityEngine
         this.databaseRA = databaseRA;
     }
 
-    public async Task<GetUserResponse> GetUserAsync(
-        GetUserRequest request,
-        CancellationToken cancellationToken = default)
+     public async Task<DbUser?> VerifyUserCredentialsAsync(string username, string rawPassword, CancellationToken cancellationToken)
     {
-        var user = await databaseRA.GetUserAsync(request.UserId, cancellationToken);
+        // 1. Call DBRA to fetch user
+        var user = await databaseRA.GetUserByUsernameAsync(username, cancellationToken);
+        if (user == null) return null;
 
-        if (user is null)
-        {
-            return new GetUserResponse
-            {
-                Success = false,
-                Message = "User was not found.",
-                CorrelationId = request.CorrelationId
-            };
-        }
-
-        return new GetUserResponse
-        {
-            Success = true,
-            CorrelationId = request.CorrelationId,
-            User = user
-        };
+        // 2. Perform the business logic calculation (Crypto evaluation)
+        bool IsPasswordValid = BCrypt.Net.BCrypt.Verify(rawPassword, user.PasswordHash);
+        
+        return IsPasswordValid ? user : null;
     }
 }

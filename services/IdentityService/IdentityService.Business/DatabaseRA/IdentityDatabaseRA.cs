@@ -1,25 +1,17 @@
 using FinSight.Contracts;
-using IdentityService.Internal.Contracts.DataContracts;
-
+using IdentityService.Internal.Contracts.DataContracts.Entities;
+using IdentityService.Internal.Contracts.ServiceContracts;
+using Microsoft.EntityFrameworkCore;
 namespace IdentityService.Business.DatabaseRA;
 
-public sealed class IdentityDatabaseRA : RaBase, IIdentityDatabaseRA
-{
-    private static readonly IReadOnlyDictionary<string, UserDto> Users =
-        new Dictionary<string, UserDto>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["demo-user"] = new()
-            {
-                UserId = "demo-user",
-                Email = "demo.user@finsight.local",
-                DisplayName = "Demo User"
-            }
-        };
+public sealed class IdentityDatabaseRA(IdentityContext context) : RaBase(), IIdentityDatabaseRA
+{  
+    private readonly IdentityContext _context = context;
 
-    public Task<UserDto?> GetUserAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<DbUser?> GetUserByUsernameAsync(string username, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        Users.TryGetValue(userId, out var user);
-        return Task.FromResult(user);
+        // Pure query. IdentityContext was already configured via your gRPC/HTTP Interceptor
+        return await _context.Users
+            .FirstOrDefaultAsync(u => u.Username == username, cancellationToken);
     }
 }

@@ -1,5 +1,5 @@
 using FinSight.Contracts;
-using IdentityService.Internal.Contracts.DataContracts.Req;
+using IdentityService.Internal.Contracts.DataContracts.Requests;
 using IdentityService.Internal.Contracts.DataContracts.Responses;
 using ProtoBuf.Grpc;
 using System.ServiceModel;
@@ -10,7 +10,6 @@ namespace IdentityService.External.Contracts.ServiceContracts;
 public interface IIdentityManager : IExternalManager
 {
     [OperationContract]
-    Task<GetUserResponse> GetUserAsync(
-        GetUserRequest request,
-        CallContext context = default);
+    public  Task<LoginResponse> AuthenticateUserAsync(LoginRequest request, CancellationToken cancellationToken);
+
 }

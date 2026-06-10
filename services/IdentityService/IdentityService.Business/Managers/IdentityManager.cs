@@ -1,6 +1,6 @@
 using FinSight.Contracts;
 using IdentityService.External.Contracts.ServiceContracts;
-using IdentityService.Internal.Contracts.DataContracts.Req;
+using IdentityService.Internal.Contracts.DataContracts.Requests;
 using IdentityService.Internal.Contracts.DataContracts.Responses;
 using IdentityService.Internal.Contracts.ServiceContracts;
 using ProtoBuf.Grpc;
@@ -16,15 +16,23 @@ public sealed class IdentityManager : ManagerBase, IIdentityManager
         this.engine = engine;
     }
 
-    public Task<GetUserResponse> GetUserAsync(
-        GetUserRequest request,
-        CallContext context = default)
+ // 💡 NEW METHOD: Exposed via IIdentityManager for credential processing
+    public async Task<LoginResponse> AuthenticateUserAsync(LoginRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.UserId))
+        var validatedUser = await engine.VerifyUserCredentialsAsync(request.Username, request.Password, cancellationToken);
+
+        if (validatedUser == null)
         {
-            return Task.FromResult(Failure<GetUserResponse>(request, "UserId is required."));
+            return new LoginResponse { Success = false, Message = "Invalid username or password." };
         }
 
-        return engine.GetUserAsync(request, context.CancellationToken);
+        return new LoginResponse 
+        { 
+            Success = true, 
+            Username = validatedUser.Username,
+            Role = validatedUser.Role,
+            DateOfBirth = validatedUser.DateOfBirth
+        };
     }
 }
+

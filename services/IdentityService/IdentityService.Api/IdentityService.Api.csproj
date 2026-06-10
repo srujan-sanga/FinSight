@@ -7,11 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../../shared/FinSight.GrpcInterceptors/FinSight.GrpcInterceptors.csproj" />
     <ProjectReference Include="../IdentityService.External.Contracts/IdentityService.External.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
     <PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="1.2.2" />
+   <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
   </ItemGroup>
 
 </Project>
